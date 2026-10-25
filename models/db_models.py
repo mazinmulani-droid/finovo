@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Dict, List, Optional
 
 from sqlalchemy import (
     JSON,
@@ -73,11 +74,11 @@ class AlertRule(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     symbol: Mapped[str] = mapped_column(String(64), index=True)
     alert_type: Mapped[str] = mapped_column(String(32))  # AlertType value
-    threshold: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    threshold: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    last_triggered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    last_snapshot: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    last_triggered_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    last_snapshot: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     user: Mapped[User] = relationship(back_populates="alerts")
 
@@ -101,14 +102,14 @@ class VerdictRecord(Base):
     __tablename__ = "verdict_records"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    user_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     symbol: Mapped[str] = mapped_column(String(64), index=True)
     recorded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
-    price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     verdict: Mapped[str] = mapped_column(Text)
-    signal_score: Mapped[float | None] = mapped_column(Float, nullable=True)
-    strategy_type: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    news_sentiment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    signal_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    strategy_type: Mapped[Optional[str]] = mapped_column(String(256), nullable=True)
+    news_sentiment: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
 
 class DailySummaryCache(Base):
@@ -187,11 +188,11 @@ class BreakoutTrade(Base):
     target_price: Mapped[float] = mapped_column(Float)
     quantity: Mapped[float] = mapped_column(Float)
     entry_time: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
-    exit_price: Mapped[float | None] = mapped_column(Float, nullable=True)
-    exit_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    exit_reason: Mapped[str | None] = mapped_column(String(32), nullable=True)  # "TARGET", "STOP_LOSS", "EOD", "MANUAL"
-    pnl: Mapped[float | None] = mapped_column(Float, nullable=True)
-    pnl_percentage: Mapped[float | None] = mapped_column(Float, nullable=True)
+    exit_price: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    exit_time: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    exit_reason: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)  # "TARGET", "STOP_LOSS", "EOD", "MANUAL"
+    pnl: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    pnl_percentage: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     status: Mapped[str] = mapped_column(String(16), default="OPEN")  # "OPEN", "CLOSED", "CANCELLED"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -205,7 +206,7 @@ class BacktestResult(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     strategy_name: Mapped[str] = mapped_column(String(128))
-    symbols: Mapped[list[str]] = mapped_column(JSON)
+    symbols: Mapped[List[str]] = mapped_column(JSON)
     start_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     end_date: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     timeframe: Mapped[str] = mapped_column(String(16))
@@ -217,9 +218,9 @@ class BacktestResult(Base):
     total_pnl_percentage: Mapped[float] = mapped_column(Float)
     max_drawdown: Mapped[float] = mapped_column(Float)
     max_drawdown_percentage: Mapped[float] = mapped_column(Float)
-    sharpe_ratio: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sharpe_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     parameters: Mapped[dict] = mapped_column(JSON)
-    detailed_trades: Mapped[list[dict]] = mapped_column(JSON)
+    detailed_trades: Mapped[List[dict]] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped[User] = relationship(back_populates="backtest_results")

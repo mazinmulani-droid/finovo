@@ -1,5 +1,7 @@
 """Side-by-side stock comparison."""
 
+from __future__ import annotations
+
 from fastapi import APIRouter, Query
 
 from config import get_gemini_api_key

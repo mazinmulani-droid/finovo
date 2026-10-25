@@ -1,5 +1,7 @@
 """Service for AI-powered intraday stock picks targeting 5-20% same-day returns."""
 
+from __future__ import annotations
+
 import json
 import logging
 import re

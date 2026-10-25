@@ -1,5 +1,7 @@
 """NSE and market data helpers."""
 
+from __future__ import annotations
+
 import logging
 
 import requests

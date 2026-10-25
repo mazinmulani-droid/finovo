@@ -1,5 +1,7 @@
 """Daily market summary (public; cached)."""
 
+from __future__ import annotations
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query

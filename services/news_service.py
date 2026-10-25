@@ -1,5 +1,7 @@
 """NewsData.io + Gemini sentiment."""
 
+from __future__ import annotations
+
 import logging
 from urllib.parse import quote
 

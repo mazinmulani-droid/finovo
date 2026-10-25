@@ -2,6 +2,8 @@
 FastAPI entrypoint — stock analysis + daily dashboard APIs.
 """
 
+from __future__ import annotations
+
 import json
 import math
 from contextlib import asynccontextmanager

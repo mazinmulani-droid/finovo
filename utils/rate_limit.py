@@ -1,5 +1,7 @@
 """Detect upstream (Yahoo, Gemini, etc.) rate-limit style errors from exception chains."""
 
+from __future__ import annotations
+
 
 def exception_chain_text(exc: BaseException, max_depth: int = 8) -> str:
     """Google / yfinance errors are often nested; str(top) may omit the rate-limit phrase."""

@@ -1,5 +1,7 @@
 """Technical indicators."""
 
+from __future__ import annotations
+
 import logging
 
 import pandas as pd

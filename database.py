@@ -1,5 +1,7 @@
 """SQLAlchemy engine and session. SQLite locally; set DATABASE_URL for PostgreSQL (e.g. Render)."""
 
+from __future__ import annotations
+
 from collections.abc import Generator
 from pathlib import Path
 

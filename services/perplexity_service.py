@@ -1,5 +1,7 @@
 """Optional Perplexity API — only used when PERPLEXITY_API_KEY is set."""
 
+from __future__ import annotations
+
 import logging
 import time
 

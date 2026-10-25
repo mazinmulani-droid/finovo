@@ -1,5 +1,7 @@
 """WebSocket routes for real-time updates."""
 
+from __future__ import annotations
+
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from services.auth_service import get_current_user_ws
 from services.websocket_service import handle_websocket_connection

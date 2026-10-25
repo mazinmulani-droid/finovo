@@ -1,5 +1,7 @@
 """Bounded TTL cache to avoid unbounded memory growth."""
 
+from __future__ import annotations
+
 import time
 from collections import OrderedDict
 from typing import Any
