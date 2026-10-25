@@ -1,4 +1,4 @@
-# JayQuant daily dashboard
+# Finovo daily dashboard
 
 This document describes the **v2** dashboard APIs, storage, and how to run everything locally or on Render + Vercel.
 
@@ -18,7 +18,7 @@ Copy `.env.example` to `.env` (repo root). Important keys:
 | `GEMINI_API_KEY` | Analysis + daily summary + assistant |
 | `NEWSDATA_API_KEY` | News |
 | `JWT_SECRET` | **Required in production** for signing tokens |
-| `DATABASE_URL` | Optional; default SQLite `sqlite:///./data/jayquant.db` |
+| `DATABASE_URL` | Optional; default SQLite `sqlite:///./data/finovo.db` |
 | `CORS_ORIGINS` | Frontend origins (comma-separated) |
 | `VITE_API_BASE_URL` | **Frontend (Vercel):** full API URL, e.g. `https://xxx.onrender.com` |
 
@@ -31,7 +31,7 @@ On startup, if the `verdict_records` table is **empty** and `verdict_log.json` e
 **Terminal 1 — API**
 
 ```text
-cd /path/to/stockmarket
+cd /path/to/finovo
 python -m venv .venv
 .venv\Scripts\activate   # Windows
 pip install -r requirements.txt

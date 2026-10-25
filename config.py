@@ -48,8 +48,8 @@ def get_cors_origins() -> list[str]:
 def get_cors_origin_regex() -> str | None:
     """
     Extra origins beyond allow_origins (OR logic in Starlette).
-    - Render: allow all JayQuant Vercel hosts (production + preview), e.g.
-      stockmarket-rho.vercel.app and stockmarket-xxx-jays-projects-xxx.vercel.app
+    - Render: allow all Finovo Vercel hosts (production + preview), e.g.
+      finovo.vercel.app and preview domains
     - Local dev: any port on localhost / 127.0.0.1 when CORS_ORIGINS is unset.
     Override with CORS_ORIGIN_REGEX (use \"none\" to disable).
     """
@@ -64,7 +64,7 @@ def get_cors_origin_regex() -> str | None:
         "false",
         "no",
     ):
-        # Any *.vercel.app (preview + prod) — not only names starting with "stockmarket"
+        # Any *.vercel.app (preview + prod)
         return r"^https://[\w-]+\.vercel\.app$"
 
     if is_production():
@@ -118,7 +118,7 @@ def get_database_url() -> str:
     """
     u = os.getenv("DATABASE_URL", "").strip()
     if not u:
-        return "sqlite:///./data/jayquant.db"
+        return "sqlite:///./data/finovo.db"
     if u.startswith("postgres://"):
         return "postgresql+psycopg2://" + u[len("postgres://") :]
     return u

@@ -110,8 +110,8 @@ A comprehensive stock market analysis platform with AI-powered insights, technic
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd stockmarket
+git clone https://github.com/mazinmulani-droid/finovo.git
+cd finovo
 ```
 
 2. **Create virtual environment**

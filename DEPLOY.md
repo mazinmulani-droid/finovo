@@ -1,10 +1,10 @@
-# Deploy JayQuant (frontend + API)
+# Deploy Finovo (frontend + API)
 
 This repo is a **monorepo**: React (Vite) at the root **and** FastAPI (`main.py`). Deploy them as **two services**.
 
 ## Your live site (reference)
 
-- **Frontend (Vercel):** [https://stockmarket-rho.vercel.app/](https://stockmarket-rho.vercel.app/)
+- **Frontend (Vercel):** [https://finovo.vercel.app/](https://finovo.vercel.app/)
 - **Backend (Render):** use your service URL (e.g. `https://something.onrender.com`) — it must match `VITE_API_BASE_URL` on Vercel and `PRODUCTION_API_FALLBACK` in `src/api.js` if you rely on the fallback.
 
 ## 1. Backend (Render / Railway / similar)
@@ -13,9 +13,9 @@ This repo is a **monorepo**: React (Vite) at the root **and** FastAPI (`main.py`
 
 1. Push this repo to **GitHub** (if it is not already).
 2. In [Render Dashboard](https://dashboard.render.com) → **New +** → **Web Service**.
-3. **Connect** your `stockmarket` (or fork) repository and choose branch **`main`**.
+3. **Connect** your `finovo` repository and choose branch **`main`**.
 4. Configure:
-   - **Name:** anything (e.g. `jayquant-api`) — this becomes `https://<name>.onrender.com`.
+   - **Name:** anything (e.g. `finovo-api`) — this becomes `https://<name>.onrender.com`.
    - **Region:** pick one close to you.
    - **Root directory:** leave **empty** (repo root — where `main.py` lives).
    - **Runtime:** **Python 3**.
@@ -28,7 +28,7 @@ This repo is a **monorepo**: React (Vite) at the root **and** FastAPI (`main.py`
    |-----|--------|
    | `GEMINI_API_KEY` | from [Google AI Studio](https://aistudio.google.com/apikey) |
    | `NEWSDATA_API_KEY` | from [newsdata.io](https://newsdata.io/) |
-   | `CORS_ORIGINS` | `https://stockmarket-rho.vercel.app` (comma-separate if you add more origins) |
+   | `CORS_ORIGINS` | `https://finovo.vercel.app` (comma-separate if you add more origins) |
    | `ENVIRONMENT` | `production` (optional) |
 
    Optional: `SKIP_GEMINI_SENTIMENT` = `1`, `ANALYSIS_CACHE_TTL` = `3600` (see table below).
@@ -50,7 +50,7 @@ This repo is a **monorepo**: React (Vite) at the root **and** FastAPI (`main.py`
   |----------|----------|
   | `GEMINI_API_KEY` | Yes |
   | `NEWSDATA_API_KEY` | Yes |
-  | `CORS_ORIGINS` | Yes — include your **production** Vercel URL (e.g. `https://stockmarket-rho.vercel.app`). **Preview** deploys (`*.vercel.app`) are allowed automatically when `RENDER=true` via regex in `config.py` (any subdomain, not only `stockmarket-*`). |
+  | `CORS_ORIGINS` | Yes — include your **production** Vercel URL (e.g. `https://finovo.vercel.app`). **Preview** deploys (`*.vercel.app`) are allowed automatically when `RENDER=true` via regex in `config.py` (any subdomain). |
   | `ENVIRONMENT` | Optional — `production` |
   | `PERPLEXITY_API_KEY` | Optional |
   | `ANALYSIS_CACHE_TTL` | Optional — seconds for in-memory `/analyze` cache (Render defaults to **1 hour** when unset). |

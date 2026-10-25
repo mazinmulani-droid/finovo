@@ -4,7 +4,7 @@
 
 services:
   - type: web
-    name: jayquant-api
+    name: finovo-api
     runtime: python
     plan: free
     buildCommand: pip install -r requirements.txt
