@@ -12,7 +12,11 @@ from datetime import datetime
 import pandas as pd
 import yfinance as yf
 
-from config import get_analysis_cache_ttl_seconds, is_render_deployment
+from config import (
+    get_analysis_cache_ttl_seconds,
+    get_gemini_api_key,
+    is_render_deployment,
+)
 from services import chart_service, gemini_service, market_service, news_service
 from services.technical_service import compute_technicals, last_numeric
 from utils.cache import BoundedTTLCache
@@ -543,21 +547,29 @@ Strict FORMAT:
 6. 📌 Final Verdict: **{suggested}** (1-line reason only)
 """
 
-    try:
-        gemini_report = gemini_service.generate_text(
-            prompt, context="run_analysis_report"
-        ).strip()
-    except Exception as e:
-        logger.exception("Gemini report failed: %s", e)
-        if looks_like_upstream_rate_limit(e):
-            gemini_report = (
-                "### AI narrative temporarily unavailable (Google AI rate limit on shared hosting).\n\n"
-                "Fundamentals, technicals, and the verdict below still use live data. "
-                "Wait a few minutes and analyze again for the full Gemini report.\n\n"
-                f"**Suggested stance:** {suggested}\n**Summary:** {strategy_notes}"
-            )
-        else:
-            gemini_report = f"Report generation failed: {e!s}"
+    if get_gemini_api_key():
+        try:
+            gemini_report = gemini_service.generate_text(
+                prompt, context="run_analysis_report"
+            ).strip()
+        except Exception as e:
+            logger.exception("Gemini report failed: %s", e)
+            if looks_like_upstream_rate_limit(e):
+                gemini_report = (
+                    "### AI narrative temporarily unavailable (Google AI rate limit on shared hosting).\n\n"
+                    "Fundamentals, technicals, and the verdict below still use live data. "
+                    "Wait a few minutes and analyze again for the full Gemini report.\n\n"
+                    f"**Suggested stance:** {suggested}\n**Summary:** {strategy_notes}"
+                )
+            else:
+                gemini_report = f"Report generation failed: {e!s}"
+    else:
+        gemini_report = (
+            f"### Analysis & Quantitative Overview\n\n"
+            f"**Suggested Stance:** {suggested}\n\n"
+            f"**Technical Summary:** {strategy_notes}\n\n"
+            f"> 💡 **Tip:** Add your free `GEMINI_API_KEY` to `.env` to enable full Google Gemini AI reports, deep qualitative breakdowns, and custom entry/exit targets."
+        )
 
     verdict = f"📌 Final Verdict: **{suggested}** — {strategy_notes}"
 

@@ -62,19 +62,6 @@ def analyze(
     """
     symbol = _validate_symbol(stock)
 
-    if not get_gemini_api_key():
-        logger.error("analyze: GEMINI_API_KEY is not configured")
-        raise HTTPException(
-            status_code=503,
-            detail="Server misconfiguration: GEMINI_API_KEY is not set.",
-        )
-    if not get_newsdata_api_key():
-        logger.error("analyze: NEWSDATA_API_KEY is not configured")
-        raise HTTPException(
-            status_code=503,
-            detail="Server misconfiguration: NEWSDATA_API_KEY is not set.",
-        )
-
     try:
         result = run_analysis(symbol)
     except TimeoutError as e:
