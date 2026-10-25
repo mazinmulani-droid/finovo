@@ -7,8 +7,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 export default function LoginPage() {
   const { setToken, refreshMe } = useAuth();
   const nav = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("mazin@finovo.com");
+  const [password, setPassword] = useState("password123");
   const [msg, setMsg] = useState("");
 
   async function submit(path) {
