@@ -27,8 +27,8 @@ def fetch_market_triggers() -> str:
         }
         session = requests.Session()
         session.headers.update(headers)
-        session.get("https://www.nseindia.com", timeout=8)
-        res = session.get(url, timeout=8)
+        session.get("https://www.nseindia.com", timeout=2.5)
+        res = session.get(url, timeout=2.5)
         res.raise_for_status()
         try:
             data = res.json()

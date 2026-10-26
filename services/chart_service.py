@@ -6,10 +6,11 @@ import base64
 import io
 import logging
 
-import matplotlib
+import os
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+# Ensure matplotlib uses a valid cache dir to avoid permission warnings and slow scans
+if "MPLCONFIGDIR" not in os.environ:
+    os.environ["MPLCONFIGDIR"] = "/tmp/finovo_mpl_cache"
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,10 @@ logger = logging.getLogger(__name__)
 def generate_chart_base64(hist, title: str = "Price Chart") -> str:
     """Encode a simple close-price chart as base64 PNG."""
     try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
         plt.figure(figsize=(10, 4))
         plt.plot(hist.index, hist["Close"], label="Close Price", color="cyan")
         plt.title(title)

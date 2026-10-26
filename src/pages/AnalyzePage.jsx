@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 import StockDashboard from "../StockDashboard";
 import LoadingSkeleton from "../LoadingSkeleton";
 import { getApiBase } from "../api.js";
@@ -48,30 +49,43 @@ function formatNetworkHelpProduction() {
 }
 
 export default function AnalyzePage() {
-  const [stock, setStock] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStock = searchParams.get("stock") || "";
+
+  const [stock, setStock] = useState(urlStock);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const apiBase = getApiBase();
 
-  const fetchWithRetry = async (url, retries = 3, delay = 1000) => {
+  const fetchWithRetry = async (url, retries = 2, delay = 800) => {
     try {
       return await axios.get(url);
     } catch (err) {
       if (err.response?.status === 429) throw err;
       if (retries === 0) throw err;
       await new Promise((r) => setTimeout(r, delay));
-      return fetchWithRetry(url, retries - 1, delay * 2);
+      return fetchWithRetry(url, retries - 1, delay * 1.5);
     }
   };
 
-  async function runAnalyze(symbol) {
-    const s = symbol.trim();
+  const runAnalyze = useCallback(async (symbol) => {
+    const s = symbol.trim().toUpperCase();
     if (!s) return;
+
+    // Check session cache for instant load
+    const cacheKey = `finovo_analyze_cache_${s}`;
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        setData(JSON.parse(cached));
+        setError(null);
+      }
+    } catch {}
+
     setLoading(true);
     setError(null);
-    setData(null);
     try {
       const path = `/analyze?stock=${encodeURIComponent(s)}`;
       const url = apiBase ? `${apiBase}${path}` : path;
@@ -80,6 +94,9 @@ export default function AnalyzePage() {
         setError(res.data.error);
       } else {
         setData(res.data);
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify(res.data));
+        } catch {}
       }
     } catch (err) {
       const noResponse = err.response == null;
@@ -109,11 +126,27 @@ export default function AnalyzePage() {
             : "❌ Request failed. Check that the API is running on port 8000."
         );
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }
+  }, [apiBase]);
 
-  const handleAnalyze = () => runAnalyze(stock);
+  // Sync URL parameter on initial load or URL change
+  useEffect(() => {
+    const queryStock = searchParams.get("stock");
+    if (queryStock && queryStock !== stock) {
+      setStock(queryStock);
+      runAnalyze(queryStock);
+    } else if (queryStock && !data && !loading) {
+      runAnalyze(queryStock);
+    }
+  }, [searchParams, runAnalyze]);
+
+  const handleAnalyze = () => {
+    if (!stock.trim()) return;
+    setSearchParams({ stock: stock.trim().toUpperCase() });
+    runAnalyze(stock);
+  };
 
   const onKeyDown = (e) => {
     if (e.key === "Enter") handleAnalyze();
@@ -161,6 +194,7 @@ export default function AnalyzePage() {
                 className="ticker-chip"
                 onClick={() => {
                   setStock(t);
+                  setSearchParams({ stock: t });
                   runAnalyze(t);
                 }}
                 disabled={loading}

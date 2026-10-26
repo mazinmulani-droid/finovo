@@ -52,8 +52,56 @@ class IntradayStock:
         return self.momentum is not None and abs(self.momentum) > 0.02
 
 
+NIFTY_NAMES: Dict[str, str] = {
+    'RELIANCE': 'Reliance Industries',
+    'TCS': 'Tata Consultancy Services',
+    'HDFCBANK': 'HDFC Bank',
+    'ICICIBANK': 'ICICI Bank',
+    'BHARTIARTL': 'Bharti Airtel',
+    'INFY': 'Infosys',
+    'KOTAKBANK': 'Kotak Mahindra Bank',
+    'HINDUNILVR': 'Hindustan Unilever',
+    'ITC': 'ITC Limited',
+    'SBIN': 'State Bank of India',
+    'LT': 'Larsen & Toubro',
+    'M&M': 'Mahindra & Mahindra',
+    'SUNPHARMA': 'Sun Pharmaceutical',
+    'TITAN': 'Titan Company',
+    'MARUTI': 'Maruti Suzuki',
+    'NTPC': 'NTPC Limited',
+    'POWERGRID': 'Power Grid Corporation',
+    'ONGC': 'Oil & Natural Gas Corp',
+    'COALINDIA': 'Coal India',
+    'BPCL': 'Bharat Petroleum',
+    'GAIL': 'GAIL (India)',
+    'TATASTEEL': 'Tata Steel',
+    'TECHM': 'Tech Mahindra',
+    'GRASIM': 'Grasim Industries',
+    'SHREECEM': 'Shree Cement',
+    'JSWSTEEL': 'JSW Steel',
+    'HINDALCO': 'Hindalco Industries',
+    'DIVISLAB': "Divi's Laboratories",
+    'DRREDDY': "Dr. Reddy's Labs",
+    'ADANIPORTS': 'Adani Ports & SEZ',
+    'ULTRACEMCO': 'UltraTech Cement',
+    'BAJFINANCE': 'Bajaj Finance',
+    'HDFCLIFE': 'HDFC Life Insurance',
+    'HEROMOTOCO': 'Hero MotoCorp',
+    'NESTLEIND': 'Nestle India',
+    'CIPLA': 'Cipla',
+    'BRITANNIA': 'Britannia Industries',
+    'UPL': 'UPL Limited',
+    'EICHERMOT': 'Eicher Motors',
+    'APOLLOHOSP': 'Apollo Hospitals',
+    'TATAMOTORS': 'Tata Motors',
+    'WIPRO': 'Wipro',
+    'INDUSINDBK': 'IndusInd Bank',
+    'SBILIFE': 'SBI Life Insurance'
+}
+
+
 class IntradayScanner:
-    """Live intraday stock scanner with real-time data fetching."""
+    """Live intraday stock scanner with high-performance cached batch data fetching."""
     
     def __init__(self):
         self.nifty50_symbols = [
@@ -70,129 +118,119 @@ class IntradayScanner:
         
         self.cache: Dict[str, IntradayStock] = {}
         self.last_update: Optional[datetime] = None
+        self._cache_ttl_seconds = 60
         
-    async def get_live_stocks(self, symbols: List[str] = None) -> List[IntradayStock]:
+    async def get_live_stocks(self, symbols: List[str] = None, force_refresh: bool = False) -> List[IntradayStock]:
         """
-        Get live stock data for specified symbols.
-        
-        Args:
-            symbols: List of stock symbols (defaults to Nifty 50)
-            
-        Returns:
-            List of IntradayStock objects with live data
+        Get live stock data with fast batch downloading and 60-second caching.
         """
         if symbols is None:
             symbols = self.nifty50_symbols
-        
+            
+        now = datetime.now()
+        # Fast cache return if within TTL
+        if not force_refresh and self.cache and self.last_update:
+            age = (now - self.last_update).total_seconds()
+            if age < self._cache_ttl_seconds:
+                return sorted(list(self.cache.values()), key=lambda x: (x.volume_ratio, abs(x.change_percent)), reverse=True)
+
         try:
-            # Fetch intraday data
-            stocks = []
+            # Run batch download in thread pool to not block asyncio event loop
+            loop = asyncio.get_running_loop()
+            stocks = await loop.run_in_executor(None, self._sync_batch_download, symbols)
             
-            # Process symbols in batches to avoid rate limits
-            batch_size = 10
-            for i in range(0, len(symbols), batch_size):
-                batch_symbols = symbols[i:i + batch_size]
-                batch_stocks = await self._fetch_batch_data(batch_symbols)
-                stocks.extend(batch_stocks)
-                
-                # Small delay between batches
-                await asyncio.sleep(0.1)
-            
-            # Sort by volume ratio and change percentage
-            stocks.sort(key=lambda x: (x.volume_ratio, abs(x.change_percent)), reverse=True)
-            
-            self.last_update = datetime.now()
-            return stocks
-            
+            if stocks:
+                self.cache = {s.symbol: s for s in stocks}
+                self.last_update = now
+                return sorted(stocks, key=lambda x: (x.volume_ratio, abs(x.change_percent)), reverse=True)
+            elif self.cache:
+                return sorted(list(self.cache.values()), key=lambda x: (x.volume_ratio, abs(x.change_percent)), reverse=True)
+            return []
         except Exception as e:
             logger.error(f"Error fetching live stocks: {e}")
-            return []
+            return list(self.cache.values()) if self.cache else []
     
-    async def _fetch_batch_data(self, symbols: List[str]) -> List[IntradayStock]:
-        """Fetch data for a batch of symbols."""
-        stocks = []
-        
+    def _sync_batch_download(self, symbols: List[str]) -> List[IntradayStock]:
+        """Synchronously batch download all symbols in 1-2 rapid requests instead of 100+ requests."""
+        stocks: List[IntradayStock] = []
         try:
-            # Get current day intraday data
-            tickers = yf.Tickers(symbols)
-            
-            # Get previous day data for PDH/PDL
-            prev_data = {}
-            for symbol in symbols:
+            # Batch download daily for PDH, PDL, and prev volume
+            df_daily = yf.download(symbols, period="5d", interval="1d", progress=False, group_by="ticker", threads=True)
+            # Batch download 15m intervals for live pricing and technicals
+            df_intra = yf.download(symbols, period="3d", interval="15m", progress=False, group_by="ticker", threads=True)
+
+            for sym in symbols:
                 try:
-                    ticker = yf.Ticker(symbol)
-                    hist = ticker.history(period="2d", interval="1d")
-                    if len(hist) >= 2:
-                        prev_day = hist.iloc[-2]
-                        prev_data[symbol] = {
-                            'pdh': float(prev_day['High']),
-                            'pdl': float(prev_day['Low']),
-                            'avg_volume': int(prev_day['Volume'])
-                        }
-                except Exception as e:
-                    logger.warning(f"Error fetching previous data for {symbol}: {e}")
-                    prev_data[symbol] = {'pdh': 0, 'pdl': 0, 'avg_volume': 0}
-            
-            # Process current data for each symbol
-            for symbol in symbols:
-                try:
-                    ticker = tickers.tickers.get(symbol)
-                    if ticker is None:
+                    clean_sym = sym.replace('.NS', '').upper()
+                    name = NIFTY_NAMES.get(clean_sym, clean_sym)
+
+                    # Extract sub-dataframes
+                    d_daily = df_daily[sym].dropna(how="all") if (isinstance(df_daily.columns, pd.MultiIndex) and sym in df_daily.columns.levels[0]) else pd.DataFrame()
+                    d_intra = df_intra[sym].dropna(how="all") if (isinstance(df_intra.columns, pd.MultiIndex) and sym in df_intra.columns.levels[0]) else pd.DataFrame()
+
+                    if d_daily.empty and d_intra.empty:
                         continue
-                    
-                    # Get intraday data
-                    hist = ticker.history(period="1d", interval="5m")
-                    if hist.empty:
+
+                    # PDH / PDL from previous completed session
+                    pdh = 0.0
+                    pdl = 0.0
+                    avg_volume = 1
+                    if len(d_daily) >= 2:
+                        prev_row = d_daily.iloc[-2]
+                        pdh = float(prev_row.get('High', 0.0))
+                        pdl = float(prev_row.get('Low', 0.0))
+                        avg_volume = int(prev_row.get('Volume', 1))
+
+                    # Current intraday price & technicals
+                    if not d_intra.empty:
+                        latest = d_intra.iloc[-1]
+                        current_price = float(latest.get('Close', 0.0))
+                        volume = int(latest.get('Volume', 0))
+                        high = float(latest.get('High', current_price))
+                        low = float(latest.get('Low', current_price))
+                    elif not d_daily.empty:
+                        latest = d_daily.iloc[-1]
+                        current_price = float(latest.get('Close', 0.0))
+                        volume = int(latest.get('Volume', 0))
+                        high = float(latest.get('High', current_price))
+                        low = float(latest.get('Low', current_price))
+                    else:
                         continue
-                    
-                    latest = hist.iloc[-1]
-                    current_price = float(latest['Close'])
-                    
-                    # Calculate change
-                    open_price = float(latest['Open'])
+
+                    open_price = float(d_daily.iloc[-1].get('Open', current_price)) if not d_daily.empty else current_price
                     change = current_price - open_price
-                    change_percent = (change / open_price) * 100 if open_price > 0 else 0
-                    
-                    # Get company name
-                    info = ticker.info
-                    name = info.get('shortName', info.get('longName', symbol))
-                    
-                    # Calculate technical indicators
-                    rsi = self._calculate_rsi(hist)
-                    momentum = self._calculate_momentum(hist)
-                    volatility = self._calculate_volatility(hist)
-                    
-                    # Create stock object
+                    change_percent = (change / open_price * 100) if open_price > 0 else 0.0
+
+                    # Technical indicators from intraday data
+                    rsi = self._calculate_rsi(d_intra) if not d_intra.empty else None
+                    momentum = self._calculate_momentum(d_intra) if not d_intra.empty else None
+                    volatility = self._calculate_volatility(d_intra) if not d_intra.empty else None
+
                     stock = IntradayStock(
-                        symbol=symbol.replace('.NS', ''),
+                        symbol=clean_sym,
                         name=name,
-                        current_price=current_price,
-                        change=change,
-                        change_percent=change_percent,
-                        volume=int(latest['Volume']),
-                        avg_volume=prev_data[symbol]['avg_volume'],
-                        volume_ratio=self._calculate_volume_ratio(int(latest['Volume']), prev_data[symbol]['avg_volume']),
-                        high=float(latest['High']),
-                        low=float(latest['Low']),
-                        open_price=open_price,
-                        pdh=prev_data[symbol]['pdh'],
-                        pdl=prev_data[symbol]['pdl'],
-                        rsi=rsi,
-                        momentum=momentum,
-                        volatility=volatility,
+                        current_price=round(current_price, 2),
+                        change=round(change, 2),
+                        change_percent=round(change_percent, 2),
+                        volume=volume,
+                        avg_volume=avg_volume,
+                        volume_ratio=round(self._calculate_volume_ratio(volume, avg_volume), 2),
+                        high=round(high, 2),
+                        low=round(low, 2),
+                        open_price=round(open_price, 2),
+                        pdh=round(pdh, 2),
+                        pdl=round(pdl, 2),
+                        rsi=round(rsi, 2) if rsi is not None else None,
+                        momentum=round(momentum, 4) if momentum is not None else None,
+                        volatility=round(volatility, 4) if volatility is not None else None,
                         last_update=datetime.now()
                     )
-                    
                     stocks.append(stock)
-                    self.cache[symbol] = stock
-                    
-                except Exception as e:
-                    logger.warning(f"Error processing {symbol}: {e}")
+                except Exception as inner_e:
+                    logger.warning(f"Error processing {sym}: {inner_e}")
                     continue
-            
         except Exception as e:
-            logger.error(f"Error in batch fetch: {e}")
-        
+            logger.error(f"Error in _sync_batch_download: {e}")
         return stocks
     
     def _calculate_volume_ratio(self, current_volume: int, avg_volume: int) -> float:
